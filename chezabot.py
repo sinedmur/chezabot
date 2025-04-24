@@ -18,6 +18,9 @@ RESPONSES = {
         'photos': [
             'https://cdn.tylat.cc/storage/screens/0/329/seryabkina-olga-golaya-106.webp',
             'https://cdn.tylat.cc/storage/screens/0/329/seryabkina-olga-golaya-107.webp',
+            'https://cdn.tylat.cc/storage/screens/0/329/seryabkina-olga-golaya-108.webp',
+            'https://cdn.tylat.cc/storage/screens/0/329/seryabkina-olga-golaya-109.webp',
+            'https://cdn.tylat.cc/storage/screens/0/329/seryabkina-olga-golaya-110.webp',
         ]
     },
     '112': {
