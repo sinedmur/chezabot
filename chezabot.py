@@ -7,7 +7,7 @@ BOT_TOKEN = '7798958663:AAGIOC3abdkrGdyJprk65i1k-IZ6EoWBj2o'
 REQUIRED_CHANNELS = [
     "@chezanovo",  # пример: @tyrneo_music
     "@cheza18",
-    "@@chezamusics",
+    "@chezamusics",
     "@chezaeconomic"   # если второй есть, иначе оставь один
 ]
 
