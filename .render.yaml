@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: telegram-bot
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: chezabot.py
+    envVars:
+      - key: BOT_TOKEN
+        7798958663:AAGIOC3abdkrGdyJprk65i1k-IZ6EoWBj2o
