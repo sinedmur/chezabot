@@ -7,10 +7,10 @@ BOT_TOKEN = '7798958663:AAGIOC3abdkrGdyJprk65i1k-IZ6EoWBj2o'
 # 📚 Словарь ключевых слов и их ответов
 RESPONSES = {
     '111': {
-        'text': 'Ответ на 111 📸',
+        'text': 'ГОЛЫЕ ФОТО ОЛЬГИ СЕРЯБКИНОЙ📸',
         'photos': [
-            'https://example.com/photo1.jpg',
-            'https://example.com/photo2.jpg',
+            'https://cdn.tylat.cc/storage/screens/0/329/seryabkina-olga-golaya-106.webp',
+            'https://cdn.tylat.cc/storage/screens/0/329/seryabkina-olga-golaya-107.webp',
         ]
     },
     '112': {
