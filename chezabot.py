@@ -24,7 +24,7 @@ RESPONSES = {
         ]
     },
     '112': {
-        'text': 'Это ответ на 112 🔥',
+        'text': 'ГОЛЫЕ ФОТО АНДЖЕЛИНЫ ДЖОЛИ🔥',
         'photos': [
             'https://example.com/photo3.jpg',
             'https://example.com/photo4.jpg',
