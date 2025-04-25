@@ -139,11 +139,7 @@ def main():
     app.bot.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.bot.add_handler(CallbackQueryHandler(handle_callback))
 
-    # Устанавливаем webhook (не забудьте заменить на свой URL)
-    app.bot.set_webhook(url="https://chezabot.onrender.com/webhook")
-
-    print("Бот запущен через webhook!")
-    app.run_webhook(listen="0.0.0.0", port=int(os.environ.get("PORT", 5000)), url_path="webhook")
+ app.run_webhook(listen="0.0.0.0", port=int(os.environ.get("PORT", 5000)), url_path="webhook", webhook_url="https://chezabot.onrender.com/webhook")
 
 if __name__ == '__main__':
     main()
