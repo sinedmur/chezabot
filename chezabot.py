@@ -1,17 +1,23 @@
+import os
+import asyncio
+from flask import Flask, request
 from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+from telegram.ext import (
+    ApplicationBuilder, ContextTypes,
+    MessageHandler, CallbackQueryHandler, filters
+)
 
-BOT_TOKEN = '7798958663:AAGIOC3abdkrGdyJprk65i1k-IZ6EoWBj2o'
+BOT_TOKEN = os.environ.get("BOT_TOKEN")  # Используй Render environment variables
 
-# 👇 Здесь укажи публичные каналы
+# 👇 Сюда укажи публичные каналы
 REQUIRED_CHANNELS = [
-    "@chezanovo",  # пример: @tyrneo_music
+    "@chezanovo",
     "@cheza18",
     "@chezamusics",
-    "@chezaeconomic"   # если второй есть, иначе оставь один
+    "@chezaeconomic"
 ]
 
-# 🔑 Ответы на ключевые слова
+# 🔑 Ответы
 RESPONSES = {
     '111': {
         'text': 'ГОЛЫЕ ФОТО ОЛЬГИ СЕРЯБКИНОЙ📸',
@@ -32,7 +38,11 @@ RESPONSES = {
     },
 }
 
-# ⛔️ Проверка подписки
+# ——— Flask и Telegram App
+app = Flask(__name__)
+telegram_app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+
 async def is_user_subscribed(user_id: int, channel: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
     try:
         member = await context.bot.get_chat_member(chat_id=channel, user_id=user_id)
@@ -40,7 +50,7 @@ async def is_user_subscribed(user_id: int, channel: str, context: ContextTypes.D
     except:
         return False
 
-# 📤 Отправка контента
+
 async def send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, key: str):
     response = RESPONSES[key]
     chat_id = update.effective_chat.id
@@ -49,20 +59,18 @@ async def send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, key:
     media = [InputMediaPhoto(media=url) for url in response['photos']]
     await context.bot.send_media_group(chat_id=chat_id, media=media)
 
-# 📩 Обработка сообщений
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message_text = update.message.text.strip()
     user_id = update.effective_user.id
 
     if message_text in RESPONSES:
-        # Проверка всех каналов
-        not_subscribed_channels = []
-        for channel in REQUIRED_CHANNELS:
-            if not await is_user_subscribed(user_id, channel, context):
-                not_subscribed_channels.append(channel)
+        not_subscribed_channels = [
+            channel for channel in REQUIRED_CHANNELS
+            if not await is_user_subscribed(user_id, channel, context)
+        ]
 
         if not_subscribed_channels:
-            # Создаём кнопки
             buttons = [
                 [InlineKeyboardButton("📢 Перейти в канал", url=f"https://t.me/{channel[1:]}")]
                 for channel in not_subscribed_channels
@@ -76,44 +84,50 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        # Если подписан — отправляем контент
         await send_response(update, context, message_text)
-
     else:
         await update.message.reply_text("Ключ не распознан. Попробуй другое слово.")
 
-# 🔘 Обработка кнопки "Проверить подписку"
+
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
     user_id = query.from_user.id
-    data = query.data
+    _, key = query.data.split("|")
 
-    if data.startswith("checksub"):
-        _, key = data.split("|")
+    not_subscribed_channels = [
+        channel for channel in REQUIRED_CHANNELS
+        if not await is_user_subscribed(user_id, channel, context)
+    ]
 
-        not_subscribed_channels = []
-        for channel in REQUIRED_CHANNELS:
-            if not await is_user_subscribed(user_id, channel, context):
-                not_subscribed_channels.append(channel)
+    if not_subscribed_channels:
+        await query.edit_message_text(
+            f"❌ Подписка не найдена на: {', '.join(not_subscribed_channels)}.\nПроверь, что подписался и нажми кнопку снова."
+        )
+        return
 
-        if not_subscribed_channels:
-            await query.edit_message_text(
-                f"❌ Подписка не найдена на: {', '.join(not_subscribed_channels)}.\nПроверь, что подписался и нажми кнопку снова."
-            )
-            return
+    await query.edit_message_text("✅ Подписка подтверждена!")
+    await send_response(update, context, key)
 
-        await query.edit_message_text("✅ Подписка подтверждена!")
-        await send_response(update, context, key)
 
-# 🚀 Запуск
-def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    app.add_handler(CallbackQueryHandler(handle_callback))
-    print("Бот запущен!")
-    app.run_polling()
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+telegram_app.add_handler(CallbackQueryHandler(handle_callback))
 
-if __name__ == '__main__':
-    main()
+
+@app.route(f"/{BOT_TOKEN}", methods=["POST"])
+def webhook():
+    update = Update.de_json(request.get_json(force=True), telegram_app.bot)
+    asyncio.run(telegram_app.process_update(update))
+    return "ok", 200
+
+
+@app.route("/", methods=["GET"])
+def root():
+    return "Бот работает!", 200
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    webhook_url = f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}/{BOT_TOKEN}"
+    telegram_app.bot.set_webhook(webhook_url)
+    app.run(host="0.0.0.0", port=port)
