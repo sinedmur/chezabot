@@ -1,8 +1,21 @@
 import os
-import asyncio
+import logging
 from fastapi import FastAPI, Request
 from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, CallbackQueryHandler
+from telegram.ext import (
+    ApplicationBuilder,
+    ContextTypes,
+    MessageHandler,
+    filters,
+    CallbackQueryHandler
+)
+
+# Настройка логирования
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 BOT_TOKEN = '7798958663:AAGIOC3abdkrGdyJprk65i1k-IZ6EoWBj2o'
 REQUIRED_CHANNELS = ["@chezanovo", "@cheza18", "@chezamusics", "@chezaeconomic"]
@@ -25,14 +38,14 @@ RESPONSES = {
 }
 
 app = FastAPI()
-bot_application = None  # Будет инициализирован в startup
+application = None
 
 async def is_user_subscribed(user_id: int, channel: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
     try:
         member = await context.bot.get_chat_member(chat_id=channel, user_id=user_id)
         return member.status in ["member", "administrator", "creator"]
     except Exception as e:
-        print(f"Error checking subscription: {e}")
+        logger.error(f"Error checking subscription: {e}")
         return False
 
 async def send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, key: str):
@@ -89,45 +102,67 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @app.post(f"/webhook/{BOT_TOKEN}")
 async def telegram_webhook(request: Request):
-    if bot_application is None:
+    if application is None:
+        logger.error("Application not initialized")
         return {"status": "error", "message": "Bot not initialized"}
     
-    json_data = await request.json()
-    update = Update.de_json(json_data, bot_application.bot)
-    await bot_application.process_update(update)
-    return {"status": "ok"}
+    try:
+        json_data = await request.json()
+        update = Update.de_json(json_data, application.bot)
+        await application.update_queue.put(update)
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Error processing update: {e}")
+        return {"status": "error", "message": str(e)}
 
 @app.get("/")
 async def health_check():
-    return {"status": "ok", "bot_initialized": bot_application is not None}
+    return {
+        "status": "ok", 
+        "bot_initialized": application is not None and application.running
+    }
 
 @app.on_event("startup")
 async def startup_event():
-    global bot_application
+    global application
     
     try:
         # Инициализация бота
-        bot_application = (
+        application = (
             ApplicationBuilder()
             .token(BOT_TOKEN)
             .build()
         )
         
         # Регистрация обработчиков
-        bot_application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-        bot_application.add_handler(CallbackQueryHandler(handle_callback))
+        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+        application.add_handler(CallbackQueryHandler(handle_callback))
+        
+        # Инициализация приложения
+        await application.initialize()
         
         # Установка вебхука
         webhook_url = f"https://chezabot.onrender.com/webhook/{BOT_TOKEN}"
-        await bot_application.bot.set_webhook(
+        await application.bot.set_webhook(
             url=webhook_url,
             drop_pending_updates=True
         )
-        print(f"Webhook установлен на {webhook_url}")
+        
+        # Запуск обработки обновлений
+        await application.start()
+        
+        logger.info(f"Bot started with webhook: {webhook_url}")
         
     except Exception as e:
-        print(f"Ошибка при запуске бота: {e}")
+        logger.error(f"Failed to start bot: {e}")
         raise
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    if application:
+        await application.stop()
+        await application.shutdown()
+        logger.info("Bot stopped gracefully")
 
 if __name__ == "__main__":
     import uvicorn
