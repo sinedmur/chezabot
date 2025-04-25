@@ -1,9 +1,9 @@
 from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+from fastapi import FastAPI, Request
+import os
 
 BOT_TOKEN = '7798958663:AAGIOC3abdkrGdyJprk65i1k-IZ6EoWBj2o'
-
-# 👇 Здесь укажи публичные каналы
 REQUIRED_CHANNELS = [
     "@chezanovo",  # пример: @tyrneo_music
     "@cheza18",
@@ -11,7 +11,6 @@ REQUIRED_CHANNELS = [
     "@chezaeconomic"   # если второй есть, иначе оставь один
 ]
 
-# 🔑 Ответы на ключевые слова
 RESPONSES = {
     '111': {
         'text': 'ГОЛЫЕ ФОТО ОЛЬГИ СЕРЯБКИНОЙ📸',
@@ -28,6 +27,9 @@ RESPONSES = {
         ]
     },
 }
+
+# Создаем FastAPI приложение
+app = FastAPI()
 
 # ⛔️ Проверка подписки
 async def is_user_subscribed(user_id: int, channel: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
@@ -52,14 +54,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
     if message_text in RESPONSES:
-        # Проверка всех каналов
         not_subscribed_channels = []
         for channel in REQUIRED_CHANNELS:
             if not await is_user_subscribed(user_id, channel, context):
                 not_subscribed_channels.append(channel)
 
         if not_subscribed_channels:
-            # Создаём кнопки
             buttons = [
                 [InlineKeyboardButton("📢 Перейти в канал", url=f"https://t.me/{channel[1:]}")]
                 for channel in not_subscribed_channels
@@ -73,9 +73,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        # Если подписан — отправляем контент
         await send_response(update, context, message_text)
-
     else:
         await update.message.reply_text("Ключ не распознан. Попробуй другое слово.")
 
@@ -105,12 +103,23 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_response(update, context, key)
 
 # 🚀 Запуск
+@app.post(f'/{BOT_TOKEN}')
+async def webhook(request: Request):
+    json_str = await request.json()
+    update = Update.de_json(json_str, application.bot)
+    application.update_queue.put(update)
+    return {"status": "ok"}
+
 def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    app.add_handler(CallbackQueryHandler(handle_callback))
-    print("Бот запущен!")
-    app.run_polling()
+    global application
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    # Настройка webhook
+    application.bot.set_webhook(url=f'https://chezabot.onrender.com/{BOT_TOKEN}')
+
+    # Запуск FastAPI сервера на Render
+    import uvicorn
+    uvicorn.run(app, host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
 
 if __name__ == '__main__':
     main()
