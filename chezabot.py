@@ -2,7 +2,7 @@ import os
 import asyncio
 from fastapi import FastAPI, Request
 from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, ContextTypes
+from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 
 BOT_TOKEN = '7798958663:AAGIOC3abdkrGdyJprk65i1k-IZ6EoWBj2o'
 REQUIRED_CHANNELS = [
@@ -29,10 +29,9 @@ RESPONSES = {
     },
 }
 
-# Создаем FastAPI приложение
 app = FastAPI()
+application = ApplicationBuilder().token(BOT_TOKEN).build()
 
-# ⛔️ Проверка подписки
 async def is_user_subscribed(user_id: int, channel: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
     try:
         member = await context.bot.get_chat_member(chat_id=channel, user_id=user_id)
@@ -40,7 +39,6 @@ async def is_user_subscribed(user_id: int, channel: str, context: ContextTypes.D
     except:
         return False
 
-# 📤 Отправка контента
 async def send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, key: str):
     response = RESPONSES[key]
     chat_id = update.effective_chat.id
@@ -49,7 +47,6 @@ async def send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, key:
     media = [InputMediaPhoto(media=url) for url in response['photos']]
     await context.bot.send_media_group(chat_id=chat_id, media=media)
 
-# 📩 Обработка сообщений
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message_text = update.message.text.strip()
     user_id = update.effective_user.id
@@ -78,7 +75,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Ключ не распознан. Попробуй другое слово.")
 
-# 🔘 Обработка кнопки "Проверить подписку"
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -103,7 +99,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("✅ Подписка подтверждена!")
         await send_response(update, context, key)
 
-# 🚀 Запуск
 @app.post(f'/{BOT_TOKEN}')
 async def webhook(request: Request):
     json_str = await request.json()
@@ -111,27 +106,32 @@ async def webhook(request: Request):
     await application.update_queue.put(update)
     return {"status": "ok"}
 
-# Обработчики для GET и HEAD
 @app.get("/", status_code=200)
 @app.head("/")
 async def root():
     return {"message": "Your service is live!"}
 
 async def set_webhook():
-    # Устанавливаем webhook прямо здесь
-    await application.bot.set_webhook(url=f'https://chezabot.onrender.com/{BOT_TOKEN}')
+    webhook_url = f'https://chezabot.onrender.com/{BOT_TOKEN}'
+    await application.bot.set_webhook(url=webhook_url)
+    print(f"Webhook set to: {webhook_url}")
 
 def main():
-    global application
-    application = ApplicationBuilder().token(BOT_TOKEN).build()
+    # Добавляем обработчики
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(CallbackQueryHandler(handle_callback))
 
-    # Запуск FastAPI сервера на Render
-    import uvicorn
-    port = int(os.environ.get("PORT", 10000))  # Используем правильный порт из переменной окружения
-    uvicorn.run(app, host='0.0.0.0', port=port)
-
-    # Теперь вызываем set_webhook асинхронно в самом конце
-    application.loop.run_until_complete(set_webhook())
+    # Запускаем установку вебхука
+    application.run_polling()  # Это временно, только для тестов
+    # В production используйте следующее:
+    # application.run_webhook(
+    #     listen="0.0.0.0",
+    #     port=int(os.environ.get("PORT", 10000)),
+    #     webhook_url=f'https://chezabot.onrender.com/{BOT_TOKEN}'
+    # )
 
 if __name__ == '__main__':
+    # Сначала инициализируем приложение
     main()
+    # Затем устанавливаем вебхук
+    asyncio.get_event_loop().run_until_complete(set_webhook())
