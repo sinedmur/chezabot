@@ -111,7 +111,9 @@ async def webhook(request: Request):
     await application.update_queue.put(update)
     return {"status": "ok"}
 
-@app.get("/")  # Новый обработчик для корневого пути
+# Обработчики для GET и HEAD
+@app.get("/", status_code=200)
+@app.head("/")
 async def root():
     return {"message": "Your service is live!"}
 
