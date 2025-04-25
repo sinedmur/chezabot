@@ -115,12 +115,12 @@ async def webhook(request: Request):
     await application.update_queue.put(update)  # Исправлено предупреждение с await
     return {"status": "ok"}
 
-async def main():
+def main():
     global application
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # Настройка webhook
-    await application.bot.set_webhook(url=f'https://chezabot.onrender.com/{BOT_TOKEN}')
+    # Настройка webhook с использованием await
+    application.bot.set_webhook(url=f'https://chezabot.onrender.com/{BOT_TOKEN}')
 
     # Запуск FastAPI сервера на Render
     import uvicorn
