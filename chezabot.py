@@ -6,6 +6,7 @@ from telegram.ext import Updater
 
 BOT_TOKEN = '7798958663:AAGIOC3abdkrGdyJprk65i1k-IZ6EoWBj2o'
 
+
 # Создание Flask-приложения
 app = Flask(__name__)
 
