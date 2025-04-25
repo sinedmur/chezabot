@@ -1,6 +1,6 @@
 import os
-import asyncio
-from flask import Flask, request
+import aiohttp
+from aiohttp import web
 from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 
@@ -85,19 +85,25 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("✅ Подписка подтверждена!")
         await send_response(update, context, key)
 
-# Flask + Telegram webhook
-app = Flask(__name__)
+# Aiohttp сервер
+app = web.Application()
 telegram_app = ApplicationBuilder().token(BOT_TOKEN).build()
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 telegram_app.add_handler(CallbackQueryHandler(handle_callback))
 
-@app.route(f"/{BOT_TOKEN}", methods=["POST"])
-def webhook():
-    data = request.get_json(force=True)
+async def handle_webhook(request):
+    data = await request.json()
     update = Update.de_json(data, telegram_app.bot)
-    telegram_app.update_queue.put(update)  # Запускаем асинхронную обработку
-    return "ok"
+    await telegram_app.update_queue.put(update)
+    return web.Response(text="ok")
+
+# Регистрируем вебхук
+app.add_routes([web.post(f"/{BOT_TOKEN}", handle_webhook)])
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    webhook_url = f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}/{BOT_TOKEN}"
+    async def setup():
+        await telegram_app.bot.set_webhook(webhook_url)
+    asyncio.run(setup())
+    web.run_app(app, host="0.0.0.0", port=port)
