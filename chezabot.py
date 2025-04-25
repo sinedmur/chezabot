@@ -118,7 +118,7 @@ async def root():
     return {"message": "Your service is live!"}
 
 async def set_webhook():
-    # Настройка webhook с использованием await
+    # Устанавливаем webhook прямо здесь
     await application.bot.set_webhook(url=f'https://chezabot.onrender.com/{BOT_TOKEN}')
 
 def main():
@@ -130,9 +130,8 @@ def main():
     port = int(os.environ.get("PORT", 10000))  # Используем правильный порт из переменной окружения
     uvicorn.run(app, host='0.0.0.0', port=port)
 
-    # Теперь вызываем set_webhook асинхронно
-    import asyncio
-    asyncio.run(set_webhook())  # Запускаем асинхронный метод set_webhook
+    # Теперь вызываем set_webhook асинхронно в самом конце
+    application.loop.run_until_complete(set_webhook())
 
 if __name__ == '__main__':
     main()
