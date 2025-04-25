@@ -84,6 +84,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
+        
         await send_response(update, context, message_text)
     else:
         await update.message.reply_text("Ключ не распознан. Попробуй другое слово.")
