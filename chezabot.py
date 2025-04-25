@@ -130,5 +130,10 @@ def root():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     webhook_url = f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}/{BOT_TOKEN}"
-    telegram_app.bot.set_webhook(webhook_url)
+
+    async def setup_webhook():
+        await telegram_app.bot.set_webhook(webhook_url)
+
+    asyncio.run(setup_webhook())  # 🛠 установит webhook при старте
+
     app.run(host="0.0.0.0", port=port)
