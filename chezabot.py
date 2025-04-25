@@ -2,7 +2,6 @@ from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboa
 from telegram.ext import ApplicationBuilder, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from fastapi import FastAPI, Request
 import os
-import asyncio
 
 BOT_TOKEN = '7798958663:AAGIOC3abdkrGdyJprk65i1k-IZ6EoWBj2o'
 REQUIRED_CHANNELS = [
@@ -31,6 +30,11 @@ RESPONSES = {
 
 # Создаем FastAPI приложение
 app = FastAPI()
+
+# Обработчик для корневого маршрута
+@app.get("/")
+async def read_root():
+    return {"message": "Bot is running!"}
 
 # ⛔️ Проверка подписки
 async def is_user_subscribed(user_id: int, channel: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
@@ -103,23 +107,20 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("✅ Подписка подтверждена!")
         await send_response(update, context, key)
 
-# 🚀 Запуск webhook
+# 🚀 Запуск
 @app.post(f'/{BOT_TOKEN}')
 async def webhook(request: Request):
     json_str = await request.json()
     update = Update.de_json(json_str, application.bot)
-    application.update_queue.put(update)
+    await application.update_queue.put(update)  # Исправлено предупреждение с await
     return {"status": "ok"}
-
-async def set_telegram_webhook():
-    await application.bot.set_webhook(url=f'https://chezabot.onrender.com/{BOT_TOKEN}')
 
 def main():
     global application
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
     # Настройка webhook
-    asyncio.run(set_telegram_webhook())  # Теперь вызываем асинхронно
+    application.bot.set_webhook(url=f'https://chezabot.onrender.com/{BOT_TOKEN}')
 
     # Запуск FastAPI сервера на Render
     import uvicorn
