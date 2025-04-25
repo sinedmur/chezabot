@@ -112,7 +112,7 @@ async def root():
     return {"message": "Your service is live!"}
 
 async def set_webhook():
-webhook_url = f'https://chezabot.onrender.com/{BOT_TOKEN}'
+    webhook_url = f'https://chezabot.onrender.com/{BOT_TOKEN}'
     await application.bot.set_webhook(url=webhook_url)
     print(f"Webhook set to: {webhook_url}")
 
@@ -121,17 +121,12 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(handle_callback))
 
-    # Запускаем установку вебхука
-    # application.run_polling()  # Это временно, только для тестов
-    # В production используйте следующее:
+    # Для production используем webhook
     application.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get("PORT", 10000)),
         webhook_url=f'https://chezabot.onrender.com/{BOT_TOKEN}'
     )
-                
+
 if __name__ == '__main__':
-    # Сначала инициализируем приложение
     main()
-    # Затем устанавливаем вебхук
-    asyncio.get_event_loop().run_until_complete(set_webhook())
