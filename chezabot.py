@@ -111,6 +111,10 @@ async def webhook(request: Request):
     await application.update_queue.put(update)
     return {"status": "ok"}
 
+@app.get("/")  # Новый обработчик для корневого пути
+async def root():
+    return {"message": "Your service is live!"}
+
 async def set_webhook():
     # Настройка webhook с использованием await
     await application.bot.set_webhook(url=f'https://chezabot.onrender.com/{BOT_TOKEN}')
