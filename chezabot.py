@@ -1,14 +1,15 @@
-from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, MessageHandler, CallbackQueryHandler, filters, ContextTypes
-from fastapi import FastAPI, Request
 import os
+import asyncio
+from fastapi import FastAPI, Request
+from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, ContextTypes
 
 BOT_TOKEN = '7798958663:AAGIOC3abdkrGdyJprk65i1k-IZ6EoWBj2o'
 REQUIRED_CHANNELS = [
-    "@chezanovo",  # пример: @tyrneo_music
+    "@chezanovo",
     "@cheza18",
     "@chezamusics",
-    "@chezaeconomic"   # если второй есть, иначе оставь один
+    "@chezaeconomic"
 ]
 
 RESPONSES = {
@@ -30,11 +31,6 @@ RESPONSES = {
 
 # Создаем FastAPI приложение
 app = FastAPI()
-
-# Обработчик для корневого маршрута
-@app.get("/")
-async def read_root():
-    return {"message": "Bot is running!"}
 
 # ⛔️ Проверка подписки
 async def is_user_subscribed(user_id: int, channel: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
@@ -112,7 +108,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def webhook(request: Request):
     json_str = await request.json()
     update = Update.de_json(json_str, application.bot)
-    await application.update_queue.put(update)  # Исправлено предупреждение с await
+    await application.update_queue.put(update)
     return {"status": "ok"}
 
 async def set_webhook():
@@ -125,7 +121,8 @@ def main():
 
     # Запуск FastAPI сервера на Render
     import uvicorn
-    uvicorn.run(app, host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+    port = int(os.environ.get("PORT", 10000))  # Используем правильный порт из переменной окружения
+    uvicorn.run(app, host='0.0.0.0', port=port)
 
     # Теперь вызываем set_webhook асинхронно
     import asyncio
