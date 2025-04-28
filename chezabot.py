@@ -35,6 +35,10 @@ RESPONSES = {
             'https://example.com/photo4.jpg',
         ]
     },
+    '100': {
+        'text': 'ПЕРВЫЙ ТРЕЙЛЕР ФИЛЬМА ПРОСТОКВАШИНО 🎥',
+        'video': 'https://files.catbox.moe/nxuw6q.mp4'
+    },
 }
 
 app = FastAPI()
@@ -55,8 +59,13 @@ async def send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, key:
         
     chat_id = update.effective_chat.id
     await context.bot.send_message(chat_id=chat_id, text=response['text'])
-    media = [InputMediaPhoto(media=url) for url in response['photos']]
-    await context.bot.send_media_group(chat_id=chat_id, media=media)
+    
+    if 'photos' in response:
+        media = [InputMediaPhoto(media=url) for url in response['photos']]
+        await context.bot.send_media_group(chat_id=chat_id, media=media)
+    
+    if 'video' in response:
+        await context.bot.send_video(chat_id=chat_id, video=response['video'])
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message_text = update.message.text.strip()
