@@ -6,6 +6,7 @@ from telegram.ext import (
     ApplicationBuilder,
     ContextTypes,
     MessageHandler,
+    CommandHandler,  # <-- добавлено
     filters,
     CallbackQueryHandler
 )
@@ -36,8 +37,8 @@ RESPONSES = {
         ]
     },
     '100': {
-        'text': 'ПЕРВЫЙ ТРЕЙЛЕР ФИЛЬМА ПРОСТОКВАШИНО 🎥',
-        'video': 'https://files.catbox.moe/nxuw6q.mp4'
+        'text': 'Вот твоё видео 🎥',
+        'video': 'https://files.catbox.moe/nxuw6q.mp4'  # Замени на свою ссылку
     },
 }
 
@@ -109,6 +110,13 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("✅ Подписка подтверждена!")
         await send_response(update, context, key)
 
+# --- Новый обработчик команды /start ---
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "👋 Привет! Я бот. Введи код, чтобы получить контент!\n"
+        "Не забудь подписаться на все наши каналы для доступа к материалам."
+    )
+
 @app.post(f"/webhook/{BOT_TOKEN}")
 async def telegram_webhook(request: Request):
     if application is None:
@@ -136,28 +144,25 @@ async def startup_event():
     global application
     
     try:
-        # Инициализация бота
         application = (
             ApplicationBuilder()
             .token(BOT_TOKEN)
             .build()
         )
         
-        # Регистрация обработчиков
+        # --- Регистрация всех обработчиков ---
+        application.add_handler(CommandHandler("start", start_command))  # Обработчик /start
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
         application.add_handler(CallbackQueryHandler(handle_callback))
         
-        # Инициализация приложения
         await application.initialize()
         
-        # Установка вебхука
         webhook_url = f"https://chezabot.onrender.com/webhook/{BOT_TOKEN}"
         await application.bot.set_webhook(
             url=webhook_url,
             drop_pending_updates=True
         )
         
-        # Запуск обработки обновлений
         await application.start()
         
         logger.info(f"Bot started with webhook: {webhook_url}")
