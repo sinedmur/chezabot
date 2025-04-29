@@ -30,10 +30,9 @@ RESPONSES = {
         ]
     },
     '112': {
-        'text': 'Это ответ на 112 🔥',
+        'text': 'ТО САМОЕ ФОТО УСПЕНСКОЙ🔥',
         'photos': [
-            'https://example.com/photo3.jpg',
-            'https://example.com/photo4.jpg',
+            'https://ibb.co/1GBFBD17',
         ]
     },
     '100': {
