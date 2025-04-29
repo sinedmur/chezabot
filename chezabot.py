@@ -29,7 +29,7 @@ RESPONSES = {
             'https://cdn.tylat.cc/storage/screens/0/329/seryabkina-olga-golaya-107.webp',
         ]
     },
-    '112': {
+    '101': {
         'text': 'ТО САМОЕ ФОТО УСПЕНСКОЙ🔥',
         'photos': [
             'https://ibb.co/1GBFBD17',
