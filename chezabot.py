@@ -1,12 +1,13 @@
 import os
 import logging
+import asyncio
 from fastapi import FastAPI, Request
 from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
     ContextTypes,
     MessageHandler,
-    CommandHandler,  # <-- добавлено
+    CommandHandler,
     filters,
     CallbackQueryHandler
 )
@@ -37,12 +38,25 @@ RESPONSES = {
     },
     '100': {
         'text': 'ПЕРВЫЙ ТРЕЙЛЕР НОВОГО ФИЛЬМА ПРОСТОКВАШИНО🎥',
-        'video': 'https://files.catbox.moe/nxuw6q.mp4'  # Замени на свою ссылку
+        'video': 'https://files.catbox.moe/nxuw6q.mp4'
     },
 }
 
 app = FastAPI()
 application = None
+keep_alive_task = None  # Для задачи поддержания активности
+
+async def keep_alive():
+    """Периодически отправляет запросы к серверу, чтобы предотвратить отключение"""
+    while True:
+        try:
+            # Отправляем GET запрос к корневому эндпоинту
+            logger.info("Sending keep-alive request")
+            # Здесь можно добавить реальный HTTP запрос, если нужно
+            await asyncio.sleep(300)  # Каждые 5 минут
+        except Exception as e:
+            logger.error(f"Keep-alive error: {e}")
+            await asyncio.sleep(60)
 
 async def is_user_subscribed(user_id: int, channel: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
     try:
@@ -109,7 +123,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("✅ Подписка подтверждена!")
         await send_response(update, context, key)
 
-# --- Новый обработчик команды /start ---
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Привет! Я бот канала ЧЕ ЗА. Введи код, чтобы получить контент!\n"
@@ -135,12 +148,13 @@ async def telegram_webhook(request: Request):
 async def health_check():
     return {
         "status": "ok", 
-        "bot_initialized": application is not None and application.running
+        "bot_initialized": application is not None and application.running,
+        "keep_alive_running": keep_alive_task is not None and not keep_alive_task.done()
     }
 
 @app.on_event("startup")
 async def startup_event():
-    global application
+    global application, keep_alive_task
     
     try:
         application = (
@@ -149,8 +163,7 @@ async def startup_event():
             .build()
         )
         
-        # --- Регистрация всех обработчиков ---
-        application.add_handler(CommandHandler("start", start_command))  # Обработчик /start
+        application.add_handler(CommandHandler("start", start_command))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
         application.add_handler(CallbackQueryHandler(handle_callback))
         
@@ -164,6 +177,9 @@ async def startup_event():
         
         await application.start()
         
+        # Запускаем задачу поддержания активности
+        keep_alive_task = asyncio.create_task(keep_alive())
+        
         logger.info(f"Bot started with webhook: {webhook_url}")
         
     except Exception as e:
@@ -172,6 +188,15 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
+    global keep_alive_task
+    
+    if keep_alive_task:
+        keep_alive_task.cancel()
+        try:
+            await keep_alive_task
+        except asyncio.CancelledError:
+            pass
+            
     if application:
         await application.stop()
         await application.shutdown()
@@ -179,4 +204,9 @@ async def shutdown_event():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 10000)),
+        timeout_keep_alive=300  # Увеличиваем время поддержания соединения
+    )
