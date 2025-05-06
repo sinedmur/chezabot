@@ -30,6 +30,14 @@ RESPONSES = {
             'https://cdn.tylat.cc/storage/screens/0/329/seryabkina-olga-golaya-107.webp',
         ]
     },
+    '102': {
+        'text': 'ТОП-3 ЗНАМЕНИТОСТИ, КОТОРЫЕ СПАЛИЛИ СВОЮ ГРУДЬ🔥',
+        'photos': [
+            'https://ibb.co/bjRLF97C',
+            'https://ibb.co/wZZ3Kd2X',
+            'https://ibb.co/sJmmYz9G',
+        ]
+    },
     '101': {
         'text': 'ТО САМОЕ ФОТО УСПЕНСКОЙ🔥',
         'photos': [
