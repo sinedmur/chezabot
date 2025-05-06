@@ -33,9 +33,9 @@ RESPONSES = {
     '102': {
         'text': 'ТОП-3 ЗНАМЕНИТОСТИ, КОТОРЫЕ СПАЛИЛИ СВОЮ ГРУДЬ🔥',
         'photos': [
-            'https://ibb.co/bjRLF97C',
-            'https://ibb.co/wZZ3Kd2X',
-            'https://ibb.co/sJmmYz9G',
+            'https://ibb.co/sBGZc0J',
+            'https://ibb.co/sdV7jYqq',
+            'https://ibb.co/gLbtb1GH',
         ]
     },
     '101': {
